@@ -78,3 +78,4 @@ class StripeWebhook(ResponseMixin, APIView):
             data={'payment': 'success'},
             status=200
         )
+

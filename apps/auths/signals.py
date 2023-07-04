@@ -76,3 +76,5 @@ def reject_accept_invite(
                 args=(instance.id,)
             )
             return
+        
+        

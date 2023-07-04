@@ -247,3 +247,4 @@ class CategoryViewSet(ResponseMixin, ViewSet):
             data={'error': 'categories not found'},
             status='400'
         )
+

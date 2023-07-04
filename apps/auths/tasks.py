@@ -121,3 +121,5 @@ def send_password_reset_email(email, password):
         fail_silently=False
     )
     print('MESSAGE: Password was changed')
+
+    

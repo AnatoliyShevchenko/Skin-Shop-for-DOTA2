@@ -31,3 +31,5 @@ def update_basket_total_price(
         args=(instance.basket.user.id,)
     )
     logger.info(f'Total price in {instance.basket.user} updated')
+
+    

@@ -42,3 +42,5 @@ class APIValidator(APIException):
             self.detail = {
                 'error': force_str('Server is down')
             }
+
+            

@@ -46,3 +46,4 @@ class Payments(models.Model):
     def __str__(self) -> str:
         return f'{self.transaction_id} | {self.status} \
         | {self.created_at}'
+

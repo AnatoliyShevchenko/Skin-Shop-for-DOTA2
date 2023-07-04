@@ -119,3 +119,4 @@ class Command(BaseCommand):
             f'Generated in: \
                 {(datetime.now()-start).total_seconds()} seconds.'
         )
+

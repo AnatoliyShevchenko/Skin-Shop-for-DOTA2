@@ -69,3 +69,5 @@ def update_total_price(skin_id):
     skin = Skins.objects.get(id=skin_id)
     skin.realPrice = calculate_total_price(skin)
     skin.save(update_fields=['realPrice'])
+
+    

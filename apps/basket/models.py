@@ -78,3 +78,4 @@ class BasketItem(models.Model):
 
     def __str__(self) -> str:
         return f'{self.basket} | {self.skin} | {self.quantity}'
+

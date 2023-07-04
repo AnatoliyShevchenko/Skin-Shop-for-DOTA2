@@ -25,3 +25,4 @@ def get_random_indexes(count):
     )
 
     return random_skins
+

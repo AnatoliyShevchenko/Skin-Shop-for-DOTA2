@@ -161,3 +161,5 @@ class CategorySerializer(serializers.ModelSerializer):
             'image',
             'number'
         )
+
+        

@@ -486,3 +486,4 @@ class CollectionView(ResponseMixin, APIView):
             data={'message' : 'you have no items'},
             status='200'
         )
+

@@ -145,3 +145,5 @@ class ReviewsModelTest(TestCase):
                 review='This is a test review',
                 rating=6
             )
+
+            

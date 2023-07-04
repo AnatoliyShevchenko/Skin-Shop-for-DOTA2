@@ -42,3 +42,4 @@ class ExcelFileHandler(logging.FileHandler):
             raise
         except Exception:
             self.handleError(record)
+

@@ -48,3 +48,4 @@ class SkinsBasketModelTestCase(TestCase):
         self.assertNotIn(item, self.basket.basket_items.all())
         self.assertNotIn(self.skin, self.basket.items.all())
         self.assertEqual(self.basket.total_price, 0)
+

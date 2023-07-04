@@ -7,3 +7,5 @@ class AuthsConfig(AppConfig):
 
     def ready(self) -> None:
         import auths.signals
+
+        

@@ -7,3 +7,4 @@ class SkinsConfig(AppConfig):
 
     def ready(self) -> None:
         import skins.signals
+

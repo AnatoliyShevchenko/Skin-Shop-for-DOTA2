@@ -24,3 +24,4 @@ class ActivationAccountConsumer(AsyncWebsocketConsumer):
         await self.send_json(
             {'redirect': 'https://your-react-app.com/login'}
         )
+

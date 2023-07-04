@@ -55,3 +55,5 @@ class Command(BaseCommand):
     def handle(self, *args: Any, **options: Any) -> str | None:
         self.generate_keys()
         print('GENERATE KEYS SUCCESS.')
+
+        

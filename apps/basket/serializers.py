@@ -32,3 +32,4 @@ class BasketSerializer(ModelSerializer):
             'basket_items',
             'total_price'
         )
+

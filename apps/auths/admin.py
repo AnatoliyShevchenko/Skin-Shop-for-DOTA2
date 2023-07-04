@@ -35,3 +35,4 @@ class InvitesAdmin(admin.ModelAdmin):
 
 admin.site.register(Client, ClientAdmin)
 admin.site.register(Invites, InvitesAdmin)
+

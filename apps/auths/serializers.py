@@ -242,3 +242,4 @@ class InvitesSerializer(serializers.ModelSerializer):
     class Meta:
         model = Invites
         fields = ('from_user',)
+

@@ -14,3 +14,4 @@ def calculate_total_price(obj: QuerySet):
     if obj.sale == 0:
         total = obj.priceWithoutSale
     return int(total)
+

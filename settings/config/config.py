@@ -16,4 +16,3 @@ STATUS_CODES: dict[str, Any] = {
 
 VALIDATE_PATTERN = r"""^(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*[!@#$%&*_\-])[a-zA-Z0-9!@#$%&*_\-]+$"""
 
-

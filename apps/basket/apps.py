@@ -7,3 +7,5 @@ class BasketConfig(AppConfig):
 
     def ready(self) -> None:
         import basket.signals
+
+        

@@ -17,3 +17,4 @@ def update_total_basket_price(user_id):
         
     basket.total_price = sum_price
     basket.save(update_fields=['total_price'])
+

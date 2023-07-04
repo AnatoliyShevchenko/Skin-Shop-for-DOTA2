@@ -31,3 +31,4 @@ class BasketItemAdmin(admin.ModelAdmin):
 
 admin.site.register(SkinsBasket, SkinsBasketAdmin)
 admin.site.register(BasketItem, BasketItemAdmin)
+
