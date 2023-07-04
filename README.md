@@ -9,3 +9,4 @@ Technologies were used in the development:
     PostgreSQL
     Docker-Compose
     Nginx
+    Some React (another repository)

@@ -21,6 +21,7 @@ ALLOWED_HOSTS = ['*']
 DJANGO_APPS = [
     'rest_framework',
     'rest_framework_simplejwt',
+    'channels',
     'corsheaders',
     'debug_toolbar',
     'django_extensions',
@@ -75,6 +76,13 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'settings.wsgi.application'
 
+ASGI_APPLICATION = 'settings.asgi.application'
+
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels.layers.InMemoryChannelLayer',
+    },
+}
 
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
@@ -151,9 +159,9 @@ LOGGING = {
 }
 
 # Debug toolbar тут по идее тоже надо поставить только один адрес
-INTERNAL_IPS = [
-    '0.0.0.0',
-]
+# INTERNAL_IPS = [
+#     '0.0.0.0',
+# ]
 DEBUG_TOOLBAR_PANELS = [
     'debug_toolbar.panels.history.HistoryPanel',
     'debug_toolbar.panels.versions.VersionsPanel',
@@ -169,11 +177,12 @@ DEBUG_TOOLBAR_PANELS = [
     'debug_toolbar.panels.redirects.RedirectsPanel',
     'debug_toolbar.panels.profiling.ProfilingPanel',
 ]
+
 # это надо будет удалить
-DEBUG_TOOLBAR_CONFIG = {
-    'INTERCEPT_REDIRECTS': False,
-    'SHOW_TOOLBAR_CALLBACK': lambda request: True,
-}
+# DEBUG_TOOLBAR_CONFIG = {
+#     'INTERCEPT_REDIRECTS': False,
+#    'SHOW_TOOLBAR_CALLBACK': lambda request: True,
+# }
 
 CACHES = {
     'default': {
@@ -261,4 +270,5 @@ CELERY_TASK_SERIALIZER = 'json'
 STRIPE_SETTINGS = {
     'API_KEY': config('PRIVATE_KEY'),
     'PUBLISHABLE_KEY': config('PUBLIC_KEY'),
+    'WEBHOOK' : config('STRIPE_WEBHOOK_SECRET')
 }

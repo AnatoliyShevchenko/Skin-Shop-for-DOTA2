@@ -12,20 +12,22 @@ from rest_framework_simplejwt.authentication import JWTAuthentication
 from django.db.models.query import QuerySet
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import cache_page
+from django.core.exceptions import FieldError
 
 # Local
 from .models import (
-    Skins, 
-    Reviews, 
+    Skins,
+    Reviews,
     Categories,
 )
 from .serializers import (
-    SkinsSerializer, 
-    SkinRetrieveSerial, 
+    SkinsSerializer,
+    SkinRetrieveSerial,
     ReviewsSerializer,
     FiltersSerializer,
     ReviewSerializer,
     CategorySerializer,
+    CreateReviewSerializer,
 )
 from abstract.mixins import ResponseMixin
 from abstract.paginators import AbstractPaginator
@@ -38,7 +40,6 @@ class SkinsViewSet(ResponseMixin, ViewSet):
     queryset: QuerySet = Skins.objects.all()
     paginator_class = AbstractPaginator()
     authentication_classes = [JWTAuthentication]
-
 
     @method_decorator(cache_page(600))
     def list(self, request: Request, *args, **kwargs) -> Response:
@@ -77,22 +78,22 @@ class SkinsViewSet(ResponseMixin, ViewSet):
                 return self.get_json_response(
                     key_name='items',
                     data=serializer.data,
-                    paginator=paginator
+                    paginator=paginator,
+                    status='200'
                 )
-            
+
             else:
                 errors = serializer.errors
                 return self.response_with_error(
                     message=errors
                 )
-        
+
         except Exception as e:
             return self.response_with_exception(
                 message=e
             )
 
-
-    @method_decorator(cache_page(600))
+    # @method_decorator(cache_page(600))
     def retrieve(self, request: Request, pk: str) -> Response:
         """GET Method for view one skin."""
 
@@ -103,14 +104,15 @@ class SkinsViewSet(ResponseMixin, ViewSet):
             return self.get_json_response(
                 key_name='item',
                 data=data,
+                status='200'
             )
-        
+
         except Skins.DoesNotExist:
             error_message = f'Skin with id {pk} does not exist.'
             return self.response_with_error(
                 message=error_message
             )
-    
+
 
 @permission_classes([IsAuthenticated])
 class ReviewsViewSet(ResponseMixin, ViewSet):
@@ -120,10 +122,10 @@ class ReviewsViewSet(ResponseMixin, ViewSet):
     paginator_class = AbstractPaginator()
     authentication_classes = [JWTAuthentication]
 
-    @method_decorator(cache_page(600))
+    # @method_decorator(cache_page(600))
     def list(self, request: Request, *args, **kwargs) -> Response:
         """Get method for view reviews list."""
-        
+
         try:
             reviews = self.queryset.all()
 
@@ -136,16 +138,16 @@ class ReviewsViewSet(ResponseMixin, ViewSet):
             return self.get_json_response(
                 data=serializer.data,
                 key_name='reviews',
-                paginator=paginator
+                paginator=paginator,
+                status='200'
             )
-        
+
         except Exception as e:
             return self.response_with_exception(
                 message=e
             )
-        
 
-    @method_decorator(cache_page(600))
+    # @method_decorator(cache_page(600))
     def retrieve(self, request: Request, pk: str) -> Response:
         """View reviews about skin."""
 
@@ -163,66 +165,60 @@ class ReviewsViewSet(ResponseMixin, ViewSet):
             )
             return self.get_json_response(
                 key_name='reviews',
-                data=serializer.data
+                data=serializer.data,
+                status='200'
             )
         except Skins.DoesNotExist:
             return self.get_json_response(
                 key_name='error',
-                data={'message' : 'skin does not exist'}
+                data={'message': 'skin does not exist'},
+                status='400'
             )
-
 
     def create(self, request: Request) -> Response:
         """Create review to skin."""
 
-        serializer = ReviewsSerializer(data=request.data)
-        if serializer.is_valid():
-            user = request.user
-            skin_id = serializer.validated_data.get('skin')
-            text_review = serializer.validated_data.get('review')
-            skin_rating = serializer.validated_data.get('rating')
+        serializer = CreateReviewSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user = request.user
+        skin_id = serializer.validated_data.get('skin_id')
+        text_review = serializer.validated_data.get('review')
+        skin_rating = serializer.validated_data.get('rating')
+        try:
+            skin = Skins.objects.get(id=skin_id)
+            new_review, created = Reviews.objects.get_or_create(
+                skin=skin,
+                user=user,
+                defaults={
+                    'review': text_review,
+                    'rating': skin_rating
+                }
+            )
 
-            try:
-                skin = Skins.objects.get(skin=skin_id)
+            if not created:
+                new_review.review = text_review
+                new_review.rating = skin_rating
+                new_review.save()
 
-                if Reviews.objects.filter(skin=skin).exists():
-                    new_review = Reviews.objects.get(skin=skin)
-                    new_review.review = text_review
-                    new_review.rating = skin_rating
-                    new_review.save()
-                    created = False
-                else:
-                    new_review, created = \
-                        Reviews.objects.get_or_create(
-                            skin=skin,
-                            user=user,
-                            defaults={
-                                'review': text_review, 
-                                'rating': skin_rating
-                            }
-                        )
-
-                return self.get_json_response(
-                    key_name='success', 
-                    data={'message' : 'Review has been published.'}
-                )
-        
-            except Skins.DoesNotExist:
-                error_message = \
-                    f'Skin with id {skin_id} does not exist.'
-                return self.response_with_error(
-                    message=error_message
-                )
-
-            except Exception as e:
-                return self.response_with_exception(
-                    message=e
-                )
-
-        else:
-            errors = serializer.errors
+            return self.get_json_response(
+                key_name='success',
+                data={'message': 'Review has been published.'},
+                status='200'
+            )
+        except Skins.DoesNotExist:
+            error_message = \
+                f'Skin with id {skin_id} does not exist.'
             return self.response_with_error(
-                message=errors
+                message=error_message
+            )
+        except FieldError as e:
+            return self.response_with_error(
+                message=str(e)
+            )
+        except Exception as e:
+            return self.response_with_exception(
+                message=e,
+                status='200'
             )
 
 
@@ -232,7 +228,6 @@ class CategoryViewSet(ResponseMixin, ViewSet):
 
     queryset = Categories.objects.all()
     authentication_classes = [JWTAuthentication]
-
 
     @method_decorator(cache_page(600))
     def list(self, request: Request) -> Response:
@@ -244,10 +239,11 @@ class CategoryViewSet(ResponseMixin, ViewSet):
             )
             return self.get_json_response(
                 key_name='categories',
-                data=serializer.data
+                data=serializer.data,
+                status='200'
             )
         return self.get_json_response(
             key_name='error',
-            data={'error' : 'categories not found'}
+            data={'error': 'categories not found'},
+            status='400'
         )
-    

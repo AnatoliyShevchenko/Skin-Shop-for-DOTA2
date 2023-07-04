@@ -1,9 +1,10 @@
 # Django Rest Framework
-from rest_framework.viewsets import ViewSet
+from rest_framework.views import APIView
 from rest_framework.request import Request
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.decorators import permission_classes
+from rest_framework import status
 
 # SimpleJWT
 from rest_framework_simplejwt.authentication import JWTAuthentication
@@ -12,68 +13,68 @@ from rest_framework_simplejwt.authentication import JWTAuthentication
 import stripe
 from decouple import config
 
+# Django
+from django.conf import settings
+
 # Local
 from .models import Payments
-from .serializers import PaymentSerializer
 from abstract.mixins import ResponseMixin
-from abstract.paginators import AbstractPaginator
-from abstract.validators import APIValidator
 
 
-@permission_classes([IsAuthenticated])
-class PaymentsViewSet(ResponseMixin, ViewSet):
-    """ViewSet for Payments."""
+stripe.api_key = 'sk_test_51NKbuNB7dzpJF5FEiqbFWILqExGMMvBsX1bFgYygGe1y2xX3mRNPYCbYx8zII6K5TtUlb7ELFpODSNyZPU8nUsOZ00Mb0PewLH'
+endpoint_secret = 'whsec_2e021f8921a307bb7e61be633c7bb75720352443bc43934a61ed95277d7472cf'
 
-    queryset = Payments.objects.all()
-    paginator_class = AbstractPaginator()
+
+@permission_classes([AllowAny])
+class ArtMoney(ResponseMixin, APIView):
+    """View for get money."""
+
     authentication_classes = [JWTAuthentication]
 
+    def get(self, request: Request) -> Response:
 
-    def list(self, request: Request) -> Response:
-        """GET Method, not implemented in this view."""
-
-        raise APIValidator(
-            'метод list не имплементирован',
-            'warning',
-            '202'
+        redirect_url = config('PAY_LINK')
+        return Response(
+            status=status.HTTP_302_FOUND, 
+            headers={'Location': redirect_url}
         )
 
 
-    def create(self, request: Request) -> Response:
-        stripe.api_key = config('PRIVATE_KEY')
+@permission_classes([AllowAny])
+class StripeWebhook(ResponseMixin, APIView):
 
-        serializer = PaymentSerializer(data=request.data)
-        amount = serializer.validated_data('amount')
+    authentication_classes = [JWTAuthentication]
 
-        if not amount:
-            return self.get_json_response(
-                key_name='error',
-                data='amount is required'
-            )
-        payment = Payments.objects.create(
-            amount=amount,
-            status=False,
-        )
+    def post(self, request):
+        # user = request.user
+        event = None
+        payload = request.data
+        sig_header = request.headers['STRIPE_SIGNATURE']
+    
         try:
-            payment_intent = stripe.PaymentIntent.create(
+            event = stripe.Webhook.construct_event(
+                payload, sig_header, endpoint_secret
+            )
+        except ValueError as e:
+            # Invalid payload
+            raise e
+        except stripe.error.SignatureVerificationError as e:
+            # Invalid signature
+            raise e
+
+        # Handle the event
+        if event.type == 'checkout.session.completed':
+            session = event.data.object
+            # Обработайте завершенный платеж, обновите статус в вашей системе, предоставьте подтверждение пользователю и т. д.
+            amount: int = session['amount_total'] / 100
+            Payments.objects.create(
                 amount=amount,
-                currency='rub',
-                payment_method_types=['card']
+                user=None,
+                status=True
             )
-            payment.status = True
-            payment.transaction_id = payment_intent.id
-            payment.save()
-            
-            return self.get_json_response(
-                key_name='success',
-                data='payment accepted!'
-            )
-        except stripe.error.CardError as e:
-            return self.response_with_critical(
-                message=e
-            )
-        
-        except Exception as e:
-            return self.response_with_exception(
-                message=e
-            )
+        # Верните успешный ответ для подтверждения получения уведомления от Stripe
+        return self.get_json_response(
+            key_name='message',
+            data={'payment': 'success'},
+            status=200
+        )

@@ -17,7 +17,6 @@ import os
 class ClientManager(BaseUserManager):
     """Manager for Clients."""
 
-
     def create_user(
         self,
         email: str,
@@ -42,7 +41,6 @@ class ClientManager(BaseUserManager):
         user.set_password(password)
         user.save(using=self._db)
         return user
-    
     
     def create_superuser(
         self,
@@ -160,7 +158,6 @@ class Client(AbstractBaseUser, PermissionsMixin):
 class InviteManager(models.Manager):
     """Manager for Invites."""
 
-
     def accept_invite(self, invite):
         """Method for accept invite to friends list."""
 
@@ -174,7 +171,6 @@ class InviteManager(models.Manager):
         from_user.save(update_fields=['friends'])
         to_user.save(update_fields=['friends'])
         invite.save(update_fields=['status'])
-
 
     def reject_invite(self, invite):
         """Method for reject invite to friends list."""
@@ -207,13 +203,11 @@ class Invites(models.Model):
 
     objects = InviteManager()
     
-    
     class Meta:
         ordering = ('id',)
         unique_together = ['from_user', 'to_user']
         verbose_name = 'приглашение'
         verbose_name_plural = 'приглашения'
-
 
     def __str__(self) -> str:
         return f'{self.from_user} | {self.to_user} | {self.status}'

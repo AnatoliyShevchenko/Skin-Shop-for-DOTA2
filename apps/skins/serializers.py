@@ -99,6 +99,20 @@ class ReviewsSerializer(serializers.ModelSerializer):
         )
 
 
+class CreateReviewSerializer(serializers.ModelSerializer):
+    """Serializer for create review."""
+
+    skin_id = serializers.IntegerField()
+
+    class Meta:
+        model = Reviews
+        fields = (
+            'skin_id',
+            'rating',
+            'review'
+        )
+
+
 class ReviewSerializer(serializers.ModelSerializer):
     """Serializer for view reviews in retrieve skins method."""
 

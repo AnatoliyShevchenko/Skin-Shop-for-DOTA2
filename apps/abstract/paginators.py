@@ -9,10 +9,14 @@ class AbstractPaginator(PageNumberPagination):
 
     page_size_query_param: str = 'size'
     page_query_param: str = 'page'
-    max_page_size: int = 50 
-    page_size: int = 25  
+    max_page_size: int = 50
+    page_size: int = 25
 
-    def get_paginated_response(self, data: ReturnList) -> Response:
+    def get_paginated_response(
+        self,
+        data: ReturnList,
+        status
+    ) -> Response:
 
         response: Response = \
             Response(
@@ -22,7 +26,8 @@ class AbstractPaginator(PageNumberPagination):
                         'previous': self.get_previous_link(),
                         'count': self.page.paginator.num_pages
                     },
-                    'items': data
-                }
+                    'items': data,
+                },
+                status=status
             )
         return response

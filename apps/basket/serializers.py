@@ -1,7 +1,5 @@
 # Django Rest Framework
-from rest_framework.serializers import (
-    ModelSerializer,
-)
+from rest_framework.serializers import ModelSerializer
 
 # Local
 from .models import SkinsBasket, BasketItem
@@ -16,8 +14,8 @@ class BasketItemSerializer(ModelSerializer):
     class Meta:
         model = BasketItem
         fields = (
-            'skin', 
-            'quantity', 
+            'skin',
+            'quantity',
             'price',
             'totalPrice'
         )
@@ -34,6 +32,3 @@ class BasketSerializer(ModelSerializer):
             'basket_items',
             'total_price'
         )
-
-    
-    

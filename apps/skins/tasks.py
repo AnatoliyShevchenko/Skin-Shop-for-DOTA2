@@ -23,7 +23,7 @@ def update_rating(skin_id):
         temp = 0
         for review in reviews:
             temp += review.rating
-            rating = temp / reviews.count()
+            rating = temp / len(reviews)
     
     skin.rating = rating
     skin.save(update_fields=['rating'])

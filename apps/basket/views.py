@@ -13,8 +13,8 @@ from django.db import transaction
 
 # Local
 from .models import (
-    SkinsBasket, 
-    BasketItem, 
+    SkinsBasket,
+    BasketItem,
 )
 from .serializers import BasketSerializer
 from skins.serializers import SkinsSerializer
@@ -31,7 +31,6 @@ class SkinsBasketView(ResponseMixin, APIView):
     paginator_class = AbstractPaginator()
     authentication_classes = [JWTAuthentication]
 
-
     def get(self, request: Request) -> Response:
         """GET Method for view basket empty or not."""
 
@@ -43,8 +42,9 @@ class SkinsBasketView(ResponseMixin, APIView):
             return self.get_json_response(
                 key_name='basket',
                 data=serializer.data,
+                status='200'
             )
-        
+
         except SkinsBasket.DoesNotExist:
             skins = get_random_indexes(40)
             serializer = SkinsSerializer(
@@ -53,9 +53,9 @@ class SkinsBasketView(ResponseMixin, APIView):
             )
             return self.get_json_response(
                 key_name='recommended',
-                data=serializer.data
+                data=serializer.data,
+                status='200'
             )
-
 
     def post(self, request: Request) -> Response:
         """POST Method for buy."""
@@ -68,9 +68,10 @@ class SkinsBasketView(ResponseMixin, APIView):
             if user.cash < total_price:
                 return self.get_json_response(
                     key_name='error',
-                    data='you dont have money for this'
+                    data='you dont have money for this',
+                    status='400'
                 )
-            
+
             with transaction.atomic():
                 for item in basket.basket_items.all():
                     UserSkins.objects.create(
@@ -84,20 +85,20 @@ class SkinsBasketView(ResponseMixin, APIView):
 
             return self.get_json_response(
                 key_name='success',
-                data='Items purchased successfully'
+                data='Items purchased successfully',
+                status='200'
             )
-        
+
         except SkinsBasket.DoesNotExist:
             return self.response_with_error(
                 message='basket not found'
             )
-        
+
         except Exception as e:
             return self.response_with_critical(
                 message=e
             )
 
-    
     def put(self, request: Request) -> Response:
         """PUT Method for add skin to basket."""
 
@@ -113,11 +114,11 @@ class SkinsBasketView(ResponseMixin, APIView):
 
             basket_item, item_created = \
                 BasketItem.objects.get_or_create(
-                    basket=basket, 
+                    basket=basket,
                     skin=skin,
                     price=skin.realPrice
                 )
-            
+
             if not item_created:
                 basket_item.quantity += 1
                 basket_item.totalPrice = \
@@ -129,23 +130,23 @@ class SkinsBasketView(ResponseMixin, APIView):
                 basket_item.totalPrice = \
                     basket_item.price * basket_item.quantity
                 basket_item.save(
-                    update_fields=['totalPrice', 'quantity']                
+                    update_fields=['totalPrice', 'quantity']
                 )
             return self.get_json_response(
                 key_name='success',
-                data={'message': 'Skin added to basket.'}
+                data={'message': 'Skin added to basket.'},
+                status='200'
             )
-        
+
         except Skins.DoesNotExist as e:
             return self.response_with_error(
                 message=e
             )
-        
+
         except Exception as e:
             return self.response_with_exception(
                 message=e
             )
-        
 
     def patch(self, request: Request) -> Response:
         """PATCH Method for change items 
@@ -157,14 +158,15 @@ class SkinsBasketView(ResponseMixin, APIView):
 
         try:
             basket_item = BasketItem.objects.get(
-                skin_id=skin_id, 
+                skin_id=skin_id,
                 basket__user=user
             )
             if action == 'remove':
                 basket_item.delete()
                 return self.get_json_response(
                     key_name='success',
-                    data='item removed from basket'
+                    data='item removed from basket',
+                    status='200'
                 )
             if action == 'decrease':
                 if basket_item.quantity > 1:
@@ -176,46 +178,47 @@ class SkinsBasketView(ResponseMixin, APIView):
                     )
                     return self.get_json_response(
                         key_name='success',
-                        data='item quantity decreased'
+                        data='item quantity decreased',
+                        status='200'
                     )
                 else:
                     basket_item.delete()
                     return self.get_json_response(
                         key_name='success',
-                        data='item removed from basket'
+                        data='item removed from basket',
+                        status='200'
                     )
             else:
                 return self.get_json_response(
                     key_name='error',
-                    data='invalid operation'
+                    data='invalid operation',
+                    status='400'
                 )
-            
+
         except BasketItem.DoesNotExist as e:
             return self.response_with_error(
                 message='item not found'
             )
-        
+
         except Exception as e:
             return self.response_with_exception(
                 message=e
             )
-        
 
     def delete(self, request: Request) -> Response:
         """DELETE Metho for clean basket."""
-        
+
         user = request.user
         try:
             userbasket = SkinsBasket.objects.get(user=user)
             userbasket.delete()
             return self.get_json_response(
                 key_name='success',
-                data='basket removed'
+                data='basket removed',
+                status='200'
             )
-        
+
         except SkinsBasket.DoesNotExist as e:
             return self.response_with_error(
                 message=e
             )
-        
-        

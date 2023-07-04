@@ -16,7 +16,7 @@ from rest_framework_simplejwt.views import (
 
 # Local
 from auths.views import (
-    RegistrationViewset, 
+    RegistrationViewset,
     ChangePasswordView,
     PersonalCabView,
     ActivateUser,
@@ -28,12 +28,16 @@ from auths.views import (
 )
 from basket.views import SkinsBasketView
 # from messenger.views import MessagesViewSet
-from payments.views import PaymentsViewSet
+from payments.views import (
+    ArtMoney,
+    StripeWebhook,
+)
 from skins.views import (
-    SkinsViewSet, 
+    SkinsViewSet,
     ReviewsViewSet,
     CategoryViewSet,
 )
+from settings.routing import websocket_urlpatterns
 
 
 router: DefaultRouter = DefaultRouter(
@@ -42,13 +46,13 @@ router: DefaultRouter = DefaultRouter(
 router.register('items', SkinsViewSet)
 router.register('registration', RegistrationViewset)
 router.register('reviews', ReviewsViewSet)
-router.register('payments', PaymentsViewSet)
 router.register('categories', CategoryViewSet)
 # router.register('messages', MessagesViewSet)
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', TemplateView.as_view(template_name='main.html')),
+    path('ws', include(websocket_urlpatterns)),
     path('api/v1/', include(router.urls)),
     path('api/v1/reset-password/', ResetPassword.as_view()),
     path('api/v1/change-password/', ChangePasswordView.as_view()),
@@ -57,11 +61,13 @@ urlpatterns = [
     path('api/v1/friends/', FriendsView.as_view()),
     path('api/v1/collection/', CollectionView.as_view()),
     path('api/v1/basket/', SkinsBasketView.as_view()),
+    path('api/v1/art-money/', ArtMoney.as_view()),
+    path('api/v1/webhook/', StripeWebhook.as_view()),
     path('api/token/', CustomAuth.as_view()),
     path('api/token/refresh/', TokenRefreshView.as_view()),
     path('activate/<str:code>/', ActivateUser.as_view()),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT) \
-+ static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
+    + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
 
 if settings.DEBUG:
     urlpatterns += [

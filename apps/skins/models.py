@@ -95,18 +95,15 @@ class Skins(DirtyFieldsMixin, models.Model):
         default=timezone.now
     )
 
-
     class Meta:
         ordering = ('id',)
         verbose_name = 'скин'
         verbose_name_plural = 'скины'
 
-
     def changed_fields(self):
         """Method for get changed fields."""
 
         return self.get_dirty_fields()
-
 
     def __str__(self) -> str:
         return self.title
@@ -119,9 +116,9 @@ class UserSkins(models.Model):
         to=Client,
         related_name='user',
         verbose_name='пользователь',
-        on_delete=models.PROTECT
+        on_delete=models.CASCADE
     )
-    skin = models.OneToOneField(
+    skin = models.ForeignKey(
         to=Skins,
         related_name='skins',
         verbose_name='скины',
@@ -133,12 +130,10 @@ class UserSkins(models.Model):
         validators=[MinValueValidator(1)]
     )
 
-
     class Meta:
         ordering = ('id',)
         verbose_name = 'скин пользователя'
         verbose_name_plural = 'скины пользователя'
-
 
     def __str__(self) -> str:
         return self.user.username
@@ -151,11 +146,11 @@ class Reviews(models.Model):
         to=Client,
         related_name='user_review',
         verbose_name='пользователь',
-        on_delete=models.PROTECT,
+        on_delete=models.CASCADE,
     )
-    skin = models.OneToOneField(
+    skin = models.ForeignKey(
         to=Skins,
-        on_delete=models.PROTECT,
+        on_delete=models.CASCADE,
         related_name='skin_review',
         verbose_name='скин',
     )
@@ -172,12 +167,11 @@ class Reviews(models.Model):
         validators=[MinValueValidator(1), MaxValueValidator(5)]
     )
 
-
     class Meta:
         ordering = ('id',)
         verbose_name = 'отзыв'
         verbose_name_plural = 'отзывы'
-
+        unique_together = ('user', 'skin')
 
     def __str__(self) -> str:
         return f"{self.user.username}|{self.rating}" 

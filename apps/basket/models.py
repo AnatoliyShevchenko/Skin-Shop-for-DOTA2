@@ -33,12 +33,10 @@ class SkinsBasket(models.Model):
         default=0
     )
 
-
     class Meta:
         ordering = ('id',)
         verbose_name = 'покупка скинов'
         verbose_name_plural = 'покупка скинов'
-
 
     def __str__(self) -> str:
         return f'{self.user.username} | {self.create}'
@@ -55,7 +53,7 @@ class BasketItem(models.Model):
     )
     skin = models.ForeignKey(
         to=Skins,
-        on_delete=models.PROTECT,
+        on_delete=models.CASCADE,
         verbose_name='скин'
     )
     quantity = models.PositiveSmallIntegerField(
@@ -74,12 +72,9 @@ class BasketItem(models.Model):
         default=0
     )
 
-
     class Meta:
         verbose_name = 'элемент корзины'
         verbose_name_plural = 'элементы корзины'
 
-
     def __str__(self) -> str:
         return f'{self.basket} | {self.skin} | {self.quantity}'
-
