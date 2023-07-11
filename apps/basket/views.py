@@ -10,6 +10,7 @@ from rest_framework_simplejwt.authentication import JWTAuthentication
 
 # Django
 from django.db import transaction
+from django.shortcuts import get_object_or_404
 
 # Local
 from .models import (
@@ -74,11 +75,16 @@ class SkinsBasketView(ResponseMixin, APIView):
 
             with transaction.atomic():
                 for item in basket.basket_items.all():
-                    UserSkins.objects.create(
-                        user=user,
-                        skin=item.skin,
-                        quantity=item.quantity
-                    )
+                    user_skin, created = \
+                        UserSkins.objects.get_or_create(
+                            user=user,
+                            skin=item.skin,
+                            defaults={'quantity': item.quantity}
+                        )
+                    if not created:
+                        user_skin.quantity += item.quantity
+                        user_skin.save(update_fields=['quantity'])
+                        
                 user.cash -= total_price
                 user.save(update_fields=['cash'])
                 basket.delete()
@@ -155,54 +161,47 @@ class SkinsBasketView(ResponseMixin, APIView):
         user = request.user
         skin_id = request.data.get('skin_id')
         action = request.data.get('action')
+        basket = BasketItem.objects.filter(basket__user=user)
 
-        try:
-            basket_item = BasketItem.objects.get(
-                skin_id=skin_id,
-                basket__user=user
-            )
-            if action == 'remove':
-                basket_item.delete()
+        basket_item = get_object_or_404(basket, skin_id=skin_id)
+
+        if action == 'remove':
+            basket_item.delete()
+            if basket.exists():
                 return self.get_json_response(
-                    key_name='success',
-                    data='item removed from basket',
-                    status='200'
+                key_name='success',
+                data='item removed from basket',
+                status='200'
+            )
+        if action == 'decrease':
+            if basket_item.quantity > 1:
+                basket_item.quantity -= 1
+                basket_item.totalPrice = \
+                    basket_item.price * basket_item.quantity
+                basket_item.save(
+                    update_fields=['quantity', 'totalPrice']
                 )
-            if action == 'decrease':
-                if basket_item.quantity > 1:
-                    basket_item.quantity -= 1
-                    basket_item.totalPrice = \
-                        basket_item.price * basket_item.quantity
-                    basket_item.save(
-                        update_fields=['quantity', 'totalPrice']
-                    )
-                    return self.get_json_response(
-                        key_name='success',
-                        data='item quantity decreased',
-                        status='200'
-                    )
-                else:
-                    basket_item.delete()
+                if basket.exists():
                     return self.get_json_response(
                         key_name='success',
                         data='item removed from basket',
                         status='200'
                     )
-            else:
+                
+            basket_item.delete()
+            if basket.exists():
                 return self.get_json_response(
-                    key_name='error',
-                    data='invalid operation',
-                    status='400'
+                    key_name='success',
+                    data='item removed from basket',
+                    status='200'
                 )
 
-        except BasketItem.DoesNotExist as e:
-            return self.response_with_error(
-                message='item not found'
-            )
-
-        except Exception as e:
-            return self.response_with_exception(
-                message=e
+        if not basket.exists():
+            SkinsBasket.objects.filter(user=user).delete()
+            return self.get_json_response(
+                key_name='success',
+                data='basket empty',
+                status='200'
             )
 
     def delete(self, request: Request) -> Response:

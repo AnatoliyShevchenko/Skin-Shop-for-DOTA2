@@ -1,5 +1,8 @@
 # Django
-from django.db.models.signals import post_save
+from django.db.models.signals import (
+    post_save,
+    post_delete,
+)
 from django.dispatch import receiver
 
 # Local
@@ -18,7 +21,7 @@ logger = logging.getLogger(__name__)
 
 
 @receiver(
-    post_save,
+    [post_delete, post_save],
     sender=Reviews
 )
 def change_rating(

@@ -10,9 +10,8 @@ from rest_framework_simplejwt.authentication import JWTAuthentication
 
 # Django
 from django.db.models.query import QuerySet
-from django.utils.decorators import method_decorator
-from django.views.decorators.cache import cache_page
-from django.core.exceptions import FieldError
+from django.core.cache import cache
+from django.shortcuts import get_object_or_404
 
 # Local
 from .models import (
@@ -41,12 +40,16 @@ class SkinsViewSet(ResponseMixin, ViewSet):
     paginator_class = AbstractPaginator()
     authentication_classes = [JWTAuthentication]
 
-    @method_decorator(cache_page(600))
     def list(self, request: Request, *args, **kwargs) -> Response:
         """GET Method for view skin list."""
 
+        cache_key = 'all_skins'
         try:
-            skins = self.queryset.all()
+            skins = cache.get(key=cache_key)
+            if not skins:
+                skins = self.queryset.all()
+                cache.set(key=cache_key, value=skins, timeout=600)
+
             serializer = FiltersSerializer(data=request.query_params)
             if serializer.is_valid():
                 category = serializer.validated_data.get('category')
@@ -56,9 +59,9 @@ class SkinsViewSet(ResponseMixin, ViewSet):
 
                 if sortBy == 'realPrice':
                     if order == 'desc':
-                        skins = skins.order_by('-priceWithoutSale')
+                        skins = skins.order_by('-realPrice')
                     elif order == 'asc':
-                        skins = skins.order_by('priceWithoutSale')
+                        skins = skins.order_by('realPrice')
                 if category:
                     skins = skins.filter(category=category)
 
@@ -93,12 +96,15 @@ class SkinsViewSet(ResponseMixin, ViewSet):
                 message=e
             )
 
-    # @method_decorator(cache_page(600))
     def retrieve(self, request: Request, pk: str) -> Response:
         """GET Method for view one skin."""
 
+        cache_key = f'skin_{pk}_info'
         try:
-            skin = self.queryset.get(id=pk)
+            skin = cache.get(key=cache_key)
+            if not skin:
+                skin = self.queryset.get(id=pk)
+                cache.set(key=cache_key, value=skin)
             serializer = SkinRetrieveSerial(skin)
             data = serializer.data
             return self.get_json_response(
@@ -122,59 +128,53 @@ class ReviewsViewSet(ResponseMixin, ViewSet):
     paginator_class = AbstractPaginator()
     authentication_classes = [JWTAuthentication]
 
-    # @method_decorator(cache_page(600))
-    def list(self, request: Request, *args, **kwargs) -> Response:
-        """Get method for view reviews list."""
+    # def list(self, request: Request, *args, **kwargs) -> Response:
+    #     """Get method for view reviews list."""
 
-        try:
-            reviews = self.queryset.all()
+    #     try:
+    #         reviews = self.queryset.all()
 
-            paginator = self.paginator_class
-            objects: list = paginator.paginate_queryset(
-                reviews,
-                request
-            )
-            serializer = ReviewsSerializer(objects, many=True)
-            return self.get_json_response(
-                data=serializer.data,
-                key_name='reviews',
-                paginator=paginator,
-                status='200'
-            )
+    #         paginator = self.paginator_class
+    #         objects: list = paginator.paginate_queryset(
+    #             reviews,
+    #             request
+    #         )
+    #         serializer = ReviewsSerializer(objects, many=True)
+    #         return self.get_json_response(
+    #             data=serializer.data,
+    #             key_name='reviews',
+    #             paginator=paginator,
+    #             status='200'
+    #         )
 
-        except Exception as e:
-            return self.response_with_exception(
-                message=e
-            )
+    #     except Exception as e:
+    #         return self.response_with_exception(
+    #             message=e
+    #         )
 
-    # @method_decorator(cache_page(600))
     def retrieve(self, request: Request, pk: str) -> Response:
         """View reviews about skin."""
 
-        try:
-            skin = Skins.objects.get(id=pk)
-            reviews = self.queryset.filter(skin=skin)
-            paginator = self.paginator_class
-            objects = paginator.paginate_queryset(
-                reviews,
-                request
-            )
-            serializer = ReviewSerializer(
-                objects,
-                many=True
-            )
-            return self.get_json_response(
-                key_name='reviews',
-                data=serializer.data,
-                status='200'
-            )
-        except Skins.DoesNotExist:
-            return self.get_json_response(
-                key_name='error',
-                data={'message': 'skin does not exist'},
-                status='400'
-            )
-
+        cache_key = f'skin_{pk}_reviews'
+        reviews = cache.get(key=cache_key)
+        if not reviews:
+            reviews = self.queryset.filter(skin__id=pk)
+            cache.set(key=cache_key, value=reviews)
+        paginator = self.paginator_class
+        objects = paginator.paginate_queryset(
+            reviews,
+            request
+        )
+        serializer = ReviewSerializer(
+            objects,
+            many=True
+        )
+        return self.get_json_response(
+            key_name='reviews',
+            data=serializer.data,
+            status='200'
+        )
+        
     def create(self, request: Request) -> Response:
         """Create review to skin."""
 
@@ -184,42 +184,32 @@ class ReviewsViewSet(ResponseMixin, ViewSet):
         skin_id = serializer.validated_data.get('skin_id')
         text_review = serializer.validated_data.get('review')
         skin_rating = serializer.validated_data.get('rating')
-        try:
-            skin = Skins.objects.get(id=skin_id)
-            new_review, created = Reviews.objects.get_or_create(
-                skin=skin,
-                user=user,
-                defaults={
-                    'review': text_review,
-                    'rating': skin_rating
-                }
-            )
 
-            if not created:
-                new_review.review = text_review
-                new_review.rating = skin_rating
-                new_review.save()
+        skin = get_object_or_404(Skins, id=skin_id)
 
-            return self.get_json_response(
-                key_name='success',
-                data={'message': 'Review has been published.'},
-                status='200'
-            )
-        except Skins.DoesNotExist:
-            error_message = \
-                f'Skin with id {skin_id} does not exist.'
-            return self.response_with_error(
-                message=error_message
-            )
-        except FieldError as e:
-            return self.response_with_error(
-                message=str(e)
-            )
-        except Exception as e:
-            return self.response_with_exception(
-                message=e,
-                status='200'
-            )
+        new_review, created = Reviews.objects.get_or_create(
+            skin=skin,
+            user=user,
+            defaults={
+                'review': text_review,
+                'rating': skin_rating
+            }
+        )
+
+        if not created:
+            new_review.review = text_review
+            new_review.rating = skin_rating
+            new_review.save()
+        
+        cache.delete_many([
+            f'skin_{skin_id}_reviews', 
+            f'skin_{skin_id}_info'
+        ])
+        return self.get_json_response(
+            key_name='success',
+            data={'message': 'Review has been published.'},
+            status='200'
+        )
 
 
 @permission_classes([AllowAny])
@@ -229,22 +219,32 @@ class CategoryViewSet(ResponseMixin, ViewSet):
     queryset = Categories.objects.all()
     authentication_classes = [JWTAuthentication]
 
-    @method_decorator(cache_page(600))
     def list(self, request: Request) -> Response:
-        categories = self.queryset.all()
-        if categories:
-            serializer = CategorySerializer(
-                categories,
-                many=True
-            )
-            return self.get_json_response(
-                key_name='categories',
-                data=serializer.data,
-                status='200'
-            )
-        return self.get_json_response(
-            key_name='error',
-            data={'error': 'categories not found'},
-            status='400'
-        )
 
+        cache_key = 'categories'
+        categories = cache.get('categories')
+        if not categories:
+            categories = self.queryset.all()
+            if not categories.exists():
+                return self.get_json_response(
+                    key_name='error',
+                    data={'error': 'categories not found'},
+                    status='400'
+                )
+
+            cache.set(
+                key=cache_key, 
+                value=categories, 
+                timeout=60*60
+            )
+            
+        serializer = CategorySerializer(
+            categories,
+            many=True
+        )
+        return self.get_json_response(
+            key_name='categories',
+            data=serializer.data,
+            status='200'
+        )
+        

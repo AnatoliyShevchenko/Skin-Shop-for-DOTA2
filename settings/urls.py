@@ -9,10 +9,7 @@ from django.views.generic import TemplateView
 from rest_framework.routers import DefaultRouter
 
 # SimpleJWT
-from rest_framework_simplejwt.views import (
-    TokenObtainPairView,
-    TokenRefreshView,
-)
+from rest_framework_simplejwt.views import TokenRefreshView
 
 # Local
 from auths.views import (
@@ -37,7 +34,6 @@ from skins.views import (
     ReviewsViewSet,
     CategoryViewSet,
 )
-from settings.routing import websocket_urlpatterns
 
 
 router: DefaultRouter = DefaultRouter(
@@ -52,7 +48,6 @@ router.register('categories', CategoryViewSet)
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', TemplateView.as_view(template_name='main.html')),
-    path('ws', include(websocket_urlpatterns)),
     path('api/v1/', include(router.urls)),
     path('api/v1/reset-password/', ResetPassword.as_view()),
     path('api/v1/change-password/', ChangePasswordView.as_view()),

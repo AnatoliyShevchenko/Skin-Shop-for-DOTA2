@@ -15,15 +15,10 @@ from rest_framework_simplejwt.exceptions import TokenError
 
 # Django
 from django.db.models.query import QuerySet
-from django.utils.decorators import method_decorator
-from django.views.decorators.cache import cache_page
+from django.core.cache import cache
 
 # Python
 import os
-
-# Third-Party
-from channels.layers import get_channel_layer
-from asgiref.sync import async_to_sync
 
 # Local
 from .models import Client, Invites
@@ -44,15 +39,13 @@ from abstract.validators import APIValidator
 from abstract.paginators import AbstractPaginator
 
 
-channel_layer = get_channel_layer()
-
-
 @permission_classes([AllowAny])
 class ActivateUser(ResponseMixin, APIView):
     """APIView for Activate user's account."""
 
     def get(self, request, code, *args, **kwargs):
         """Get Method for activate account."""
+
         custom_user = Client.objects.filter(
             activation_code=code
         )
@@ -62,10 +55,6 @@ class ActivateUser(ResponseMixin, APIView):
             if not user.is_active:
                 user.is_active = True
                 user.save()
-                async_to_sync(channel_layer.group_send)(
-                    'account_activation',
-                    {'type': 'send_message'}
-                )
                 return Response(
                     data={'message': 'Activation success!!!'},
                     status='200'
@@ -216,7 +205,8 @@ class ResetPassword(ResponseMixin, APIView):
 
         email = request.data.get('email')
         username = request.data.get('username')
-        password = os.urandom(256).hex()[:20]
+        temp = os.urandom(256).hex()[:20]
+        password = f'RES{temp}_#!'
         users = Client.objects.filter(email=email)
         if not users.exists():
             return self.get_json_response(
@@ -406,7 +396,6 @@ class InvitesView(ResponseMixin, APIView):
             return self.response_with_error(
                 message=str(e)
             )
-
 
     def patch(self, request: Request) -> Response:
         """Accept or Reject invite."""

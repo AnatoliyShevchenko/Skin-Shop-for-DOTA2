@@ -4,7 +4,7 @@ import os
 
 from decouple import config
 from datetime import timedelta
-
+import django_redis
 import redis
 
 
@@ -13,15 +13,14 @@ sys.path.append(BASE_DIR)
 sys.path.append(os.path.join(BASE_DIR, 'apps'))
 
 SECRET_KEY = config('SECRET_KEY')
-DEBUG = config('DEBUG', cast=bool)
-# DEBUG = False
+# DEBUG = config('DEBUG', cast=bool)
+DEBUG = False
 
 ALLOWED_HOSTS = ['*']
 
 DJANGO_APPS = [
     'rest_framework',
     'rest_framework_simplejwt',
-    'channels',
     'corsheaders',
     'debug_toolbar',
     'django_extensions',
@@ -36,7 +35,6 @@ PROJECT_APPS = [
     'abstract.apps.AbstractConfig',
     'auths.apps.AuthsConfig',
     'basket.apps.BasketConfig',
-    'messenger.apps.MessengerConfig',
     'payments.apps.PaymentsConfig',
     'skins.apps.SkinsConfig',
 ]
@@ -158,10 +156,6 @@ LOGGING = {
     },
 }
 
-# Debug toolbar тут по идее тоже надо поставить только один адрес
-# INTERNAL_IPS = [
-#     '0.0.0.0',
-# ]
 DEBUG_TOOLBAR_PANELS = [
     'debug_toolbar.panels.history.HistoryPanel',
     'debug_toolbar.panels.versions.VersionsPanel',
@@ -178,19 +172,13 @@ DEBUG_TOOLBAR_PANELS = [
     'debug_toolbar.panels.profiling.ProfilingPanel',
 ]
 
-# это надо будет удалить
-# DEBUG_TOOLBAR_CONFIG = {
-#     'INTERCEPT_REDIRECTS': False,
-#    'SHOW_TOOLBAR_CALLBACK': lambda request: True,
-# }
 
 CACHES = {
     'default': {
-        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
-        'LOCATION': 'unique-snowflake',
-        'TIMEOUT': 600,
+        'BACKEND': 'django_redis.cache.RedisCache',
+        'LOCATION': config('CACHE_REDIS'),
         'OPTIONS': {
-            'MAX_ENTRIES': 1000
+            'CLIENT_CLASS': 'django_redis.client.DefaultClient',
         }
     }
 }

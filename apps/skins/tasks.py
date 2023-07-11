@@ -1,6 +1,7 @@
 # Django
 from django.core.mail import send_mail
 from django.conf import settings
+from django.db.models import Avg
 
 # Python
 from datetime import datetime, timedelta
@@ -18,13 +19,9 @@ def update_rating(skin_id):
 
     skin = Skins.objects.get(id=skin_id)
     reviews = Reviews.objects.filter(skin=skin)
-    rating = 0
-    if reviews.exists():
-        temp = 0
-        for review in reviews:
-            temp += review.rating
-            rating = temp / len(reviews)
-    
+
+    rating = reviews.aggregate(Avg('rating'))['rating__avg'] or 0
+
     skin.rating = rating
     skin.save(update_fields=['rating'])
 
