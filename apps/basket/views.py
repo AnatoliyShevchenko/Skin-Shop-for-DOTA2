@@ -11,6 +11,7 @@ from rest_framework_simplejwt.authentication import JWTAuthentication
 # Django
 from django.db import transaction
 from django.shortcuts import get_object_or_404
+from django.core.cache import cache
 
 # Local
 from .models import (
@@ -89,6 +90,7 @@ class SkinsBasketView(ResponseMixin, APIView):
                 user.save(update_fields=['cash'])
                 basket.delete()
 
+            cache.delete(key=f'{user.username}_skins')
             return self.get_json_response(
                 key_name='success',
                 data='Items purchased successfully',

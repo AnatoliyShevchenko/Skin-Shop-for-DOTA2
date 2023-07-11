@@ -24,7 +24,7 @@ from auths.views import (
     CustomAuth,
 )
 from basket.views import SkinsBasketView
-# from messenger.views import MessagesViewSet
+from messenger.views import ChatsViewSet
 from payments.views import (
     ArtMoney,
     StripeWebhook,
@@ -43,7 +43,7 @@ router.register('items', SkinsViewSet)
 router.register('registration', RegistrationViewset)
 router.register('reviews', ReviewsViewSet)
 router.register('categories', CategoryViewSet)
-# router.register('messages', MessagesViewSet)
+router.register('chats', ChatsViewSet)
 
 urlpatterns = [
     path('admin/', admin.site.urls),

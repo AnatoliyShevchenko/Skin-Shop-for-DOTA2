@@ -15,6 +15,7 @@ from rest_framework_simplejwt.exceptions import TokenError
 
 # Django
 from django.db.models.query import QuerySet
+from django.shortcuts import get_object_or_404
 from django.core.cache import cache
 
 # Python
@@ -245,10 +246,15 @@ class PersonalCabView(ResponseMixin, APIView):
         """GET Method for view personal info."""
 
         user = request.user
-        serializer = PersonalSerializer(user)
+        cache_key = f'{user.username}_info'
+        data = cache.get(key=cache_key)
+        if not data:
+            data = PersonalSerializer(user).data
+            cache.set(key=cache_key, value=data)
+
         return self.get_json_response(
             key_name='user',
-            data=serializer.data,
+            data=data,
             status='200'
         )
 
@@ -263,6 +269,9 @@ class PersonalCabView(ResponseMixin, APIView):
         )
         serializer.is_valid(raise_exception=True)
         serializer.save()
+
+        cache.delete(key=f'{user.username}_info')
+
         return self.get_json_response(
             key_name='success',
             data={'updated': 'info has updated'},
@@ -274,6 +283,9 @@ class PersonalCabView(ResponseMixin, APIView):
 
         user = request.user
         user.delete()
+
+        cache.delete(key=f'{user.username}_info')
+
         return self.get_json_response(
             key_name='success',
             data={'deleted': 'account removed'},
@@ -292,7 +304,12 @@ class FriendsView(ResponseMixin, APIView):
         """GET Method for view friends list."""
 
         user = request.user
-        friends = user.friends
+        cache_key = f'{user.username}_friends'
+        friends = cache.get(key=cache_key)
+        if not friends:
+            friends = user.friends
+            cache.set(key=cache_key, value=friends)
+
         paginator = self.pagination_class
         objects = paginator.paginate_queryset(
             friends,
@@ -318,6 +335,10 @@ class FriendsView(ResponseMixin, APIView):
             friend.friends.remove(user.id)
             friend.save(update_fields=['friends'])
 
+            cache.delete_many([
+                f'{user.username}_friends',
+                f'{friend.username}_friends'
+            ])
             return self.get_json_response(
                 key_name='success',
                 data='friend deleted',
@@ -342,7 +363,15 @@ class InvitesView(ResponseMixin, APIView):
         """GET Method for view invites."""
 
         user = request.user
-        invites = Invites.objects.filter(to_user=user, status=None)
+        cache_key = f'{user.username}_invites'
+        invites = cache.get(key=cache_key)
+        if not invites:
+            invites = Invites.objects.filter(
+                to_user=user, 
+                status=None
+            )
+            cache.set(key=cache_key, value=invites)
+
         if invites.exists():
             paginator = self.paginator_class
             objects = paginator.paginate_queryset(
@@ -387,6 +416,9 @@ class InvitesView(ResponseMixin, APIView):
                 from_user=user,
                 to_user=friend
             )
+
+            cache.delete(key=f'{friend.username}_invites')
+
             return self.get_json_response(
                 key_name='success',
                 data={'message': 'User has been invited'},
@@ -403,9 +435,7 @@ class InvitesView(ResponseMixin, APIView):
         user = request.user
         username = request.data.get('username')
         action = request.data.get('action')
-        friend: QuerySet = Client.objects.filter(
-            username=username
-        ).first()
+        friend = get_object_or_404(Client, username=username)
 
         try:
             invite = Invites.objects.get(
@@ -414,7 +444,13 @@ class InvitesView(ResponseMixin, APIView):
             )
             if action == 'accept':
                 Invites.objects.accept_invite(invite)
-
+                cache.delete(key=f'{friend.username}_invites')
+                cache.delete_many([
+                    f'{friend.username}_invites',
+                    f'{user.username}_invites',
+                    f'{user.username}_friends',
+                    f'{friend.username}_friends'
+                ])
                 return self.get_json_response(
                     key_name='success',
                     data={'message': 'Invite accepted'},
@@ -423,6 +459,8 @@ class InvitesView(ResponseMixin, APIView):
 
             elif action == 'reject':
                 Invites.objects.reject_invite(invite)
+                cache.delete(key=f'{friend.username}_invites')
+
                 return self.get_json_response(
                     key_name='success',
                     data={'message': 'Invite rejected'},
@@ -450,7 +488,11 @@ class CollectionView(ResponseMixin, APIView):
         """GET Method for view user's items."""
 
         user = request.user
-        skins: QuerySet = UserSkins.objects.filter(user=user)
+        cache_key = f'{user.username}_skins'
+        skins = cache.get(key=cache_key)
+        if not skins:
+            skins: QuerySet = UserSkins.objects.filter(user=user)
+            cache.set(key=cache_key, value=skins)
 
         if skins.exists():
             paginator = self.pagination_class

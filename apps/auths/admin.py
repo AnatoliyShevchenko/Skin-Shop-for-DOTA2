@@ -1,5 +1,6 @@
 # Django
 from django.contrib import admin
+from django.contrib.auth.hashers import make_password
 
 # Local
 from .models import Client, Invites
@@ -19,6 +20,13 @@ class ClientAdmin(admin.ModelAdmin):
         'is_superuser', 
         'is_staff'
     )
+
+    def save_model(self, request, obj, form, change):
+        if 'password' in form.changed_data:
+            obj.password = make_password(
+                form.cleaned_data['password']
+            )
+        super().save_model(request, obj, form, change)
     
 
 class InvitesAdmin(admin.ModelAdmin):

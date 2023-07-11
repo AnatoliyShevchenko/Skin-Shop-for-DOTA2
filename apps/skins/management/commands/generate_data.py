@@ -17,7 +17,6 @@ from settings.config.another_shit import categories
 class Command(BaseCommand):
     """Class to create data."""
 
-
     def fill_skins_table(self):
         """Generate data."""
 
