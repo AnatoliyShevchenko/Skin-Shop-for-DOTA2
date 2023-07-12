@@ -5,6 +5,7 @@ import os
 from decouple import config
 from datetime import timedelta
 import django_redis
+import channels_redis
 import redis
 
 
@@ -23,6 +24,8 @@ DJANGO_APPS = [
     'rest_framework',
     'rest_framework_simplejwt',
     'corsheaders',
+    'channels',
+    'channels_redis',
     'debug_toolbar',
     'django_extensions',
     'django.contrib.admin',
@@ -79,8 +82,11 @@ WSGI_APPLICATION = 'settings.wsgi.application'
 ASGI_APPLICATION = 'settings.asgi.application'
 
 CHANNEL_LAYERS = {
-    'default': {
-        'BACKEND': 'channels.layers.InMemoryChannelLayer',
+    "default": {
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "CONFIG": {
+            "hosts": [config('CHANNEL_REDIS')],
+        },
     },
 }
 

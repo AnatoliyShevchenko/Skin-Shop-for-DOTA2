@@ -228,7 +228,7 @@ class CategoryViewSet(ResponseMixin, ViewSet):
             if not categories.exists():
                 return self.get_json_response(
                     key_name='error',
-                    data={'error': 'categories not found'},
+                    data={'error': 'Категории не найдены'},
                     status='400'
                 )
 

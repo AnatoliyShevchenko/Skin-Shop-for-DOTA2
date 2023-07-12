@@ -88,7 +88,7 @@ class CustomAuth(TokenObtainPairView):
 
                 if not user.check_password(password):
                     return Response(
-                        data={'Invalid password': 'True'},
+                        data={'password': 'Неправильный пароль'},
                         status='400'
                     )
 
@@ -110,12 +110,12 @@ class CustomAuth(TokenObtainPairView):
                     status='200'
                 )
             return Response(
-                data={'error': 'active user not found'},
+                data={'error': 'Аккаунт не активирован'},
                 status='400'
             )
         except Client.DoesNotExist:
             return Response(
-                data={'Invalid username': 'True'},
+                data={'username': 'Пользователь не существует'},
                 status='400'
             )
 
@@ -190,7 +190,7 @@ class ChangePasswordView(ResponseMixin, APIView):
         return self.get_json_response(
             key_name='message',
             data={
-                'message': 'Password changing success.'
+                'message': 'Пароль успешно изменен.'
             },
             status='200'
         )
@@ -274,7 +274,7 @@ class PersonalCabView(ResponseMixin, APIView):
 
         return self.get_json_response(
             key_name='success',
-            data={'updated': 'info has updated'},
+            data={'updated': 'Информация успешно обновлена'},
             status='200'
         )
 
@@ -288,7 +288,7 @@ class PersonalCabView(ResponseMixin, APIView):
 
         return self.get_json_response(
             key_name='success',
-            data={'deleted': 'account removed'},
+            data={'deleted': 'Аккаунт удален'},
             status='200'
         )
 
@@ -341,7 +341,7 @@ class FriendsView(ResponseMixin, APIView):
             ])
             return self.get_json_response(
                 key_name='success',
-                data='friend deleted',
+                data='Друг удален',
                 status='200'
             )
 
@@ -408,7 +408,7 @@ class InvitesView(ResponseMixin, APIView):
 
         if not friend:
             return self.response_with_error(
-                message='user does not exist'
+                message='Пользователь не существует'
             )
 
         try:
@@ -421,7 +421,7 @@ class InvitesView(ResponseMixin, APIView):
 
             return self.get_json_response(
                 key_name='success',
-                data={'message': 'User has been invited'},
+                data={'message': 'Пользователь приглашен'},
                 status='200'
             )
         except Exception as e:

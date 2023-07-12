@@ -142,7 +142,7 @@ class SkinsBasketView(ResponseMixin, APIView):
                 )
             return self.get_json_response(
                 key_name='success',
-                data={'message': 'Skin added to basket.'},
+                data={'message': 'Товар добавлен в корзину.'},
                 status='200'
             )
 

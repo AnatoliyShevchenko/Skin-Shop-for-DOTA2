@@ -3,13 +3,20 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.viewsets import ViewSet
 from rest_framework.permissions import IsAuthenticated
-from rest_framework.decorators import permission_classes
+from rest_framework.decorators import (
+    permission_classes, 
+    action,
+)
 
 # SimpleJWT
 from rest_framework_simplejwt.authentication import JWTAuthentication
 
 # Django
 from django.shortcuts import get_object_or_404
+
+# Third-Party
+from asgiref.sync import async_to_sync
+from channels.layers import get_channel_layer
 
 # Local
 from abstract.mixins import ResponseMixin
@@ -20,6 +27,9 @@ from .serializers import (
     MessageListSerializer,
 )
 from auths.models import Client
+
+
+channel = get_channel_layer()
 
 
 @permission_classes([IsAuthenticated])
@@ -84,20 +94,41 @@ class ChatsViewSet(ResponseMixin, ViewSet):
         )
 
     def create(self, request: Request) -> Response:
-        """POST Method for create chats and start messaging."""
 
         user = request.user
         recipient = request.data.get('recipient')
+        client = Client.objects.get(username=recipient)
+        chat_title = f'{user.username},{client.username}'
+        self.queryset.get_or_create(
+            title=chat_title,
+            members=[f'{user.id}', client.id]
+        )
+
+        return self.get_json_response(
+            key_name='chat',
+            data='opened',
+            status='200'
+        )
+    
+    @action(methods=['POST'], detail=False, url_path='send')
+    def send(self, request: Request) -> Response:
+        """POST Method for create chats and start messaging."""
+
+        user = request.user
+        chat_id = request.data.get('chat_id')
         content = request.data.get('content')
         try:
-            client = Client.objects.get(username=recipient)
-            chat_title = f'{user.username},{client.username}'
-            chat, created = self.queryset.get_or_create(
-                title=chat_title,
-                members=[f'{user.id}', client.id]
+            chat = self.queryset.get(id=chat_id)
+            async_to_sync(channel.group_send)(
+                f'chat_{chat_id}',
+                {
+                    'type': 'chat_message',
+                    'username': user.username,
+                    'content': content
+                }
             )
             Messages.objects.send_message(
-                sender=client,
+                sender=user,
                 chat=chat,
                 content=content
             )
@@ -106,8 +137,9 @@ class ChatsViewSet(ResponseMixin, ViewSet):
                 data='sended',
                 status='200'
             )
-        except Client.DoesNotExist:
+        except ChatRoom.DoesNotExist:
             return self.response_with_exception(
-                message=f"""user with username 
-                {recipient} does not exist"""
+                message='chat does not exist'
             )
+        
+        
